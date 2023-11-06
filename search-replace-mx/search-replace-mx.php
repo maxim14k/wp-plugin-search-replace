@@ -33,7 +33,7 @@ function sar_display_content() {
             <tbody>
                 <tr>
                     <th scope="row"><label for="search-term">Search For</label></th>
-                    <td><input name="search-term" type="text" id="search-term" value="" class="regular-text"></td>
+                    <td><input name="search-term" type="text" id="search-term" value="<?php echo $_POST['search-term'] ?>" class="regular-text"></td>
                 </tr>
             </tbody>
         </table>
@@ -44,7 +44,7 @@ function sar_display_content() {
     </form>
     
     <?php
-    if (isset($_POST['search-term'])) {
+    if (isset($_POST['search-term'])) { var_dump($_POST);
         $keyword = sanitize_text_field($_POST['search-term']);
 
         $args = array(
@@ -78,17 +78,20 @@ function sar_display_content() {
 
                 
                 echo '<tr>';
-                echo '<form action="" method="post">';
+                
                 echo '<td>' . esc_html($post->ID) . '</td>';
 
                 echo '<td>' . esc_html($post->post_status) . '</td>';
 
-                echo '<td>';
+                echo '';
+                echo '<td><form action="" method="post">';
                 echo esc_html($post->post_title);
                 echo '<input type="text" name="new_title" placeholder="New title" />';
                 echo '<input type="hidden" name="post_id" value="' . esc_attr($post->ID) . '" />';
+                echo '<input type="hidden" name="search-term" value="' . $_POST['search-term'] . '" />';
                 echo '<input type="submit" name="update_title" value="Replace">';
-                echo '</td>';
+                echo '</form></td>';
+                echo '';
 
                 echo '<td>' . esc_html($content_cleaned) . '</td>';
                 echo '<td>' . esc_html( $meta_title ) . '</td>';
@@ -103,23 +106,32 @@ function sar_display_content() {
         }
     }
 
-    // В начале вашего файла плагина или там, где у вас обрабатываются формы
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_title'])) {
-    // Проверка на безопасность, например, проверка nonce
-    // ...
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_title'])) { var_dump($_POST);
+        $search_term = sanitize_text_field($_POST['search-term']);
+        $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+        $new_title_part = sanitize_text_field($_POST['new_title']);
+    
+        // Получаем текущий заголовок поста
+        $current_post = get_post($post_id);
+        $current_title = $current_post->post_title;
 
-    // Обновление title
-    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-    $new_title = sanitize_text_field($_POST['new_title']);
-
-    // Убедитесь, что $post_id не равен нулю и $new_title не пустой
-    if ($post_id && !empty($new_title)) {
-        wp_update_post(array(
-            'ID' => $post_id,
-            'post_title' => $new_title
-        ));
+        echo '<br>';
+        echo $post_id .'<br>';
+        echo $new_title_part .'<br>';
+        echo $current_title .'<br>';
+        echo $search_term .'<br>';
+    
+        // Заменяем искомое слово на новое в заголовке
+        if ($post_id && !empty($new_title_part) && strpos($current_title, $search_term) !== false) { echo 'update title';
+            $updated_title = str_replace($search_term, $new_title_part, $current_title);
+    
+            wp_update_post(array(
+                'ID' => $post_id,
+                'post_title' => $updated_title
+            ));
+        }
     }
-    }
+    
 
     
 ?>
