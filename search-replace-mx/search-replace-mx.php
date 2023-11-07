@@ -44,7 +44,7 @@ function sar_display_content() {
     </form>
     
     <?php
-    if (isset($_POST['search-term'])) { var_dump($_POST);
+    if (isset($_POST['search-term'])) { //var_dump($_POST);
         $keyword = sanitize_text_field($_POST['search-term']);
 
         $args = array(
@@ -62,7 +62,13 @@ function sar_display_content() {
             echo '<tr>';
             echo '<th>ID</th>';
             echo '<th>Status</th>';
-            echo '<th>Title</th>';
+            echo '<th>Title<br>';
+            echo '<form action="" method="post">';
+            echo '<input type="hidden" name="search-term" value="' . esc_attr($_POST['search-term']) . '" />';
+            echo '<input type="text" name="replace-term" placeholder="New keyword" />';
+            echo '<input type="submit" name="replace_all" value="Replace All">';
+            echo '</form>';
+            echo '</th>';
             echo '<th>Content</th>';
             echo '<th>Meta Title</th>';
             echo '<th>Meta Description</th>';
@@ -84,13 +90,9 @@ function sar_display_content() {
                 echo '<td>' . esc_html($post->post_status) . '</td>';
 
                 echo '';
-                echo '<td><form action="" method="post">';
+                echo '<td>';
                 echo esc_html($post->post_title);
-                echo '<input type="text" name="new_title" placeholder="New title" />';
-                echo '<input type="hidden" name="post_id" value="' . esc_attr($post->ID) . '" />';
-                echo '<input type="hidden" name="search-term" value="' . $_POST['search-term'] . '" />';
-                echo '<input type="submit" name="update_title" value="Replace">';
-                echo '</form></td>';
+                echo '</td>';
                 echo '';
 
                 echo '<td>' . esc_html($content_cleaned) . '</td>';
@@ -102,42 +104,48 @@ function sar_display_content() {
             echo '</tbody>';
             echo '</table>';
         } else {
-            echo "<div class='updated'><p>Записей, содержащих '" . $keyword . "', не найдено.</p></div>";
+            echo "<div class='updated'><p>Posts, with '" . $keyword . "', not found.</p></div>";
         }
     }
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_title'])) { var_dump($_POST);
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['replace_all'])) {
         $search_term = sanitize_text_field($_POST['search-term']);
-        $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-        $new_title_part = sanitize_text_field($_POST['new_title']);
+        $replace_term = sanitize_text_field($_POST['replace-term']);
     
-        // Получаем текущий заголовок поста
-        $current_post = get_post($post_id);
-        $current_title = $current_post->post_title;
-
-        echo '<br>';
-        echo $post_id .'<br>';
-        echo $new_title_part .'<br>';
-        echo $current_title .'<br>';
-        echo $search_term .'<br>';
+        $args = array(
+            's' => $search_term,
+            'post_status' => 'publish',
+            'posts_per_page' => -1
+        );
     
-        // Заменяем искомое слово на новое в заголовке
-        if ($post_id && !empty($new_title_part) && strpos($current_title, $search_term) !== false) { echo 'update title';
-            $updated_title = str_replace($search_term, $new_title_part, $current_title);
+        $query = new WP_Query($args);
+        $posts = $query->posts;
+        $count = 0;
     
-            wp_update_post(array(
-                'ID' => $post_id,
-                'post_title' => $updated_title
-            ));
+        foreach ($posts as $post) {
+            // Замените в контенте
+            $replaced_content = str_replace($search_term, $replace_term, $post->post_content);
+            // Замените в заголовке
+            $replaced_title = str_replace($search_term, $replace_term, $post->post_title);
+    
+            // Если что-то было заменено, обновите пост
+            if ($replaced_content !== $post->post_content || $replaced_title !== $post->post_title) {
+                wp_update_post(array(
+                    'ID'           => $post->ID,
+                    'post_content' => $replaced_content,
+                    'post_title'   => $replaced_title
+                ));
+                $count++;
+            }
         }
-    }
     
-
+        echo "<div class='updated'><p>Updated " . $count . " posts.</p></div>";
+    }
     
 ?>
 
 
-    <?php
+<?php
 }
 
 
