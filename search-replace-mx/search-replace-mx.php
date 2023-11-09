@@ -36,16 +36,11 @@ function sar_display_content() {
                     <th scope="row"><label for="search-term">Search For</label></th>
                     <td><input name="search-term" type="text" id="search-term" value="" class="regular-text"></td>
                 </tr>
-                <tr>
-                    <th scope="row"><label for="replace-term">Replace With</label></th>
-                    <td><input name="replace-term" type="text" id="replace-term" value="" class="regular-text"></td>
-                </tr>
             </tbody>
         </table>
         
         <p class="submit">
             <input type="button" name="submit" id="submit-search" class="button button-primary" value="Search keyword">
-            <input type="button" name="submit" id="submit-replace" class="button button-secondary" value="Replace keyword">
         </p>
     </form>
     
@@ -57,52 +52,83 @@ function sar_display_content() {
         e.preventDefault();
         var search_term = $('#search-term').val();
 
-        $.ajax({
-            url: ajaxurl,
-            type: 'post',
-            data: {
-                action: 'sar_search_posts',
-                search_term: search_term
-            },
-            success: function(response) {
-                $('#search-results').html(response);
-            }
-        });
+        updateSearchResults(search_term);
     });
 
     $('#submit-replace').on('click', function(e) {
-        e.preventDefault();
-        var search_term = $('#search-term').val();
-        var replace_term = $('#replace-term').val();
+    e.preventDefault();
+    var search_term = $('#search-term').val();
+    var replace_term = $('#replace-term').val();
+    var column = $(this).data('column'); // Убедитесь, что у кнопки есть data-атрибут 'column'
 
-        $.ajax({
-            url: ajaxurl,
-            type: 'post',
-            data: {
-                action: 'sar_replace_keywords',
-                search_term: search_term,
-                replace_term: replace_term
-            },
-            dataType: 'json',
-            success: function(response) {
-                alert('Замена выполнена в ' + response.replaced_count + ' постах!');
-                if (response.replaced_count > 0) {
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'post',
-                        data: {
-                            action: 'sar_search_posts',
-                            search_term: response.new_search_term
-                        },
-                        success: function(searchResponse) {
-                            $('#search-results').html(searchResponse);
-                        }
-                    });
-                }
+    $.ajax({
+        url: ajaxurl,
+        type: 'post',
+        data: {
+            action: 'sar_replace_keywords',
+            search_term: search_term,
+            replace_term: replace_term,
+            column: column // Это значение должно быть передано в AJAX-запрос
+        },
+        dataType: 'json',
+        success: function(response) {
+            alert('Замена выполнена для колонки ' + column + ' в ' + response.replaced_count + ' постах!');
+            if (response.replaced_count > 0) {
+                // Теперь вызываем updateSearchResults с массивом ID
+                updateSearchResults(search_term, response.replaced_posts_ids);
             }
-        });
+        }
     });
 });
+
+
+// Обработчик для кнопок замены
+$(document).on('click', '.replace-button', function() {
+    var column = $(this).data('column'); // Название колонки (например, 'title', 'content')
+    var replace_term = $(this).prev('.replace-term').val();
+    var search_term = $('#search-term').val();
+
+    $.ajax({
+        url: ajaxurl,
+        type: 'post',
+        data: {
+            action: 'sar_replace_keywords',
+            search_term: search_term,
+            replace_term: replace_term,
+            column: column // Отправляем название колонки в AJAX-запросе
+        },
+        dataType: 'json',
+        success: function(response) {
+            alert('Замена выполнена для колонки ' + column + ' в ' + response.replaced_count + ' постах!');
+            if (response.replaced_count > 0) {
+                updateSearchResults(replace_term);
+            }
+        }
+    });
+});
+
+
+
+
+});
+
+function updateSearchResults(newSearchTerm, replacedPostsIds) {
+    jQuery.ajax({
+        url: ajaxurl,
+        type: 'post',
+        data: {
+            action: 'sar_search_posts',
+            search_term: newSearchTerm
+        },
+        success: function(searchResponse) {
+            jQuery('#search-results').html(searchResponse);
+        }
+    });
+}
+
+
+
+
 
     </script>
     <?php
@@ -128,10 +154,10 @@ function sar_search_posts_callback() {
         $html .= '<tr>';
         $html .= '<th>ID</th>';
         $html .= '<th>Status</th>';
-        $html .= '<th>Title</th>';
-        $html .= '<th>Content</th>';
-        $html .= '<th>Meta Title</th>';
-        $html .= '<th>Meta Description</th>';
+        $html .= '<th>Title<br><input id="search-replace-title" type="text" class="small-text replace-term" data-column="title" placeholder="New title"><button class="button replace-button" data-column="title">Replace</button></th>';
+        $html .= '<th>Content<br><input id="search-replace-content" type="text" class="small-text replace-term" data-column="content" placeholder="New content"><button class="button replace-button" data-column="content">Replace</button></th></th>';
+        $html .= '<th>Meta Title<br><input id="search-replace-meta-title" type="text" class="small-text replace-term" data-column="meta-title" placeholder="New meta-title"><button class="button replace-button" data-column="meta-title">Replace</button></th></th>';
+        $html .= '<th>Meta Description<br><input id="search-replace-meta-description" type="text" class="small-text replace-term" data-column="meta-description" placeholder="New meta-description"><button class="button replace-button" data-column="meta-description">Replace</button></th></th>';
         $html .= '</tr>';
         $html .= '</thead>';
         $html .= '<tbody>';
@@ -142,7 +168,7 @@ function sar_search_posts_callback() {
             $meta_title = get_post_meta( $post->ID, '_yoast_wpseo_title', true );
             $meta_description = get_post_meta( $post->ID, '_yoast_wpseo_metadesc', true );
 
-            $html .= '<tr>';
+            $html .= '<tr id="post-row-' . esc_attr($post->ID) . '">'; // Добавляем идентификатор к строке
             $html .= '<td>' . esc_html($post->ID) . '</td>';
             $html .= '<td>' . esc_html($post->post_status) . '</td>';
             $html .= '<td>' . esc_html($post->post_title) . '</td>';
@@ -163,9 +189,10 @@ function sar_search_posts_callback() {
 }
 
 function sar_replace_keywords_callback() {
-    global $wpdb; // глобальный объект базы данных WordPress
+    global $wpdb;
     $search_term = sanitize_text_field($_POST['search_term']);
     $replace_term = sanitize_text_field($_POST['replace_term']);
+    $column = isset($_POST['column']) ? sanitize_text_field($_POST['column']) : '';
 
     // Проверка nonce и прав пользователя должна быть здесь
 
@@ -178,44 +205,59 @@ function sar_replace_keywords_callback() {
 
     $posts = get_posts($args);
     $count = 0;
+    $replaced_posts_ids = array();
 
     foreach ($posts as $post) {
-        // Замена в контенте
-        $replaced_content = str_replace($search_term, $replace_term, $post->post_content);
-        // Замена в заголовке
-        $replaced_title = str_replace($search_term, $replace_term, $post->post_title);
-        // Замена в мета-данных
-        $replaced_meta_title = str_replace($search_term, $replace_term, get_post_meta($post->ID, '_yoast_wpseo_title', true));
-        $replaced_meta_description = str_replace($search_term, $replace_term, get_post_meta($post->ID, '_yoast_wpseo_metadesc', true));
-
-        if ($replaced_content !== $post->post_content || $replaced_title !== $post->post_title) {
-            // Обновляем пост
-            wp_update_post(array(
-                'ID' => $post->ID,
-                'post_content' => $replaced_content,
-                'post_title' => $replaced_title
-            ));
-            $count++;
-        }
-        
-        // Обновляем мета-данные
-        if ($replaced_meta_title !== get_post_meta($post->ID, '_yoast_wpseo_title', true)) {
-            update_post_meta($post->ID, '_yoast_wpseo_title', $replaced_meta_title);
-        }
-        if ($replaced_meta_description !== get_post_meta($post->ID, '_yoast_wpseo_metadesc', true)) {
-            update_post_meta($post->ID, '_yoast_wpseo_metadesc', $replaced_meta_description);
+        switch ($column) {
+            case 'title':
+                $new_title = str_replace($search_term, $replace_term, $post->post_title);
+                if ($new_title !== $post->post_title) {
+                    wp_update_post(array(
+                        'ID' => $post->ID,
+                        'post_title' => $new_title
+                    ));
+                    $replaced_posts_ids[] = $post->ID;
+                    $count++;
+                }
+                break;
+            case 'content':
+                $new_content = str_replace($search_term, $replace_term, $post->post_content);
+                if ($new_content !== $post->post_content) {
+                    wp_update_post(array(
+                        'ID' => $post->ID,
+                        'post_content' => $new_content
+                    ));
+                    $replaced_posts_ids[] = $post->ID;
+                    $count++;
+                }
+                break;
+            case 'meta-title':
+                $new_meta_title = str_replace($search_term, $replace_term, get_post_meta($post->ID, '_yoast_wpseo_title', true));
+                if ($new_meta_title !== get_post_meta($post->ID, '_yoast_wpseo_title', true)) {
+                    update_post_meta($post->ID, '_yoast_wpseo_title', $new_meta_title);
+                    $replaced_posts_ids[] = $post->ID;
+                    $count++;
+                }
+                break;
+            case 'meta-description':
+                $new_meta_description = str_replace($search_term, $replace_term, get_post_meta($post->ID, '_yoast_wpseo_metadesc', true));
+                if ($new_meta_description !== get_post_meta($post->ID, '_yoast_wpseo_metadesc', true)) {
+                    update_post_meta($post->ID, '_yoast_wpseo_metadesc', $new_meta_description);
+                    $replaced_posts_ids[] = $post->ID;
+                    $count++;
+                }
+                break;
+            // Добавьте другие случаи, если есть другие колонки для замены
         }
     }
 
-    header('Content-Type: application/json'); // Указываем, что возвращается JSON
+    header('Content-Type: application/json');
     echo json_encode(array(
         'replaced_count' => $count,
-        'new_search_term' => $replace_term // Возвращаем новый термин для поиска
+        'replaced_posts_ids' => $replaced_posts_ids
     ));
-    wp_die(); // Завершаем ajax-запрос, возвращая управление браузеру
-    
+    wp_die();
 }
-
 
 
 function sar_enqueue_scripts($hook) {
