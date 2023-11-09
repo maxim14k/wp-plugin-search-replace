@@ -1,0 +1,21 @@
+input.medium-text.replace-term{
+    margin-left: 0px; 
+    padding-left: 5px;
+}
+
+h1{
+    margin-bottom: 40px;
+}
+
+#search-form{
+    margin-bottom: 40px;
+}
+
+#search-form label{
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+#search-results{
+    margin-right: 20px;
+}
