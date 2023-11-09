@@ -26,112 +26,18 @@ add_action( 'wp_ajax_sar_search_posts', 'sar_search_posts_callback' );
 add_action( 'wp_ajax_sar_replace_keywords', 'sar_replace_keywords_callback' );
 
 function sar_display_content() {
-    ?>
+?>
     <h1>Search and Replace Keywords</h1>
     
     <form id="search-form" method="post" action="">
-        <table class="form-table">
-            <tbody>
-                <tr>
-                    <th scope="row"><label for="search-term">Search For</label></th>
-                    <td><input name="search-term" type="text" id="search-term" value="" class="regular-text"></td>
-                </tr>
-            </tbody>
-        </table>
-        
-        <p class="submit">
-            <input type="button" name="submit" id="submit-search" class="button button-primary" value="Search keyword">
-        </p>
+        <label for="search-term">Search For</label>
+        <input name="search-term" type="text" id="search-term" value="" class="regular-text">
+        <input type="button" name="submit" id="submit-search" class="button button-primary" value="Search keyword">
     </form>
     
     <div id="search-results"></div>
 
-    <script>
-    jQuery(document).ready(function($) {
-    $('#submit-search').on('click', function(e) {
-        e.preventDefault();
-        var search_term = $('#search-term').val();
-
-        updateSearchResults(search_term);
-    });
-
-    $('#submit-replace').on('click', function(e) {
-    e.preventDefault();
-    var search_term = $('#search-term').val();
-    var replace_term = $('#replace-term').val();
-    var column = $(this).data('column'); // Убедитесь, что у кнопки есть data-атрибут 'column'
-
-    $.ajax({
-        url: ajaxurl,
-        type: 'post',
-        data: {
-            action: 'sar_replace_keywords',
-            search_term: search_term,
-            replace_term: replace_term,
-            column: column // Это значение должно быть передано в AJAX-запрос
-        },
-        dataType: 'json',
-        success: function(response) {
-            alert('Замена выполнена для колонки ' + column + ' в ' + response.replaced_count + ' постах!');
-            if (response.replaced_count > 0) {
-                // Теперь вызываем updateSearchResults с массивом ID
-                updateSearchResults(search_term, response.replaced_posts_ids);
-            }
-        }
-    });
-});
-
-
-// Обработчик для кнопок замены
-$(document).on('click', '.replace-button', function() {
-    var column = $(this).data('column'); // Название колонки (например, 'title', 'content')
-    var replace_term = $(this).prev('.replace-term').val();
-    var search_term = $('#search-term').val();
-
-    $.ajax({
-        url: ajaxurl,
-        type: 'post',
-        data: {
-            action: 'sar_replace_keywords',
-            search_term: search_term,
-            replace_term: replace_term,
-            column: column // Отправляем название колонки в AJAX-запросе
-        },
-        dataType: 'json',
-        success: function(response) {
-            alert('Замена выполнена для колонки ' + column + ' в ' + response.replaced_count + ' постах!');
-            if (response.replaced_count > 0) {
-                updateSearchResults(replace_term);
-            }
-        }
-    });
-});
-
-
-
-
-});
-
-function updateSearchResults(newSearchTerm, replacedPostsIds) {
-    jQuery.ajax({
-        url: ajaxurl,
-        type: 'post',
-        data: {
-            action: 'sar_search_posts',
-            search_term: newSearchTerm
-        },
-        success: function(searchResponse) {
-            jQuery('#search-results').html(searchResponse);
-        }
-    });
-}
-
-
-
-
-
-    </script>
-    <?php
+<?php
 }
 
 function sar_search_posts_callback() {
@@ -153,11 +59,10 @@ function sar_search_posts_callback() {
         $html .= '<thead>';
         $html .= '<tr>';
         $html .= '<th>ID</th>';
-        $html .= '<th>Status</th>';
-        $html .= '<th>Title<br><input id="search-replace-title" type="text" class="small-text replace-term" data-column="title" placeholder="New title"><button class="button replace-button" data-column="title">Replace</button></th>';
-        $html .= '<th>Content<br><input id="search-replace-content" type="text" class="small-text replace-term" data-column="content" placeholder="New content"><button class="button replace-button" data-column="content">Replace</button></th></th>';
-        $html .= '<th>Meta Title<br><input id="search-replace-meta-title" type="text" class="small-text replace-term" data-column="meta-title" placeholder="New meta-title"><button class="button replace-button" data-column="meta-title">Replace</button></th></th>';
-        $html .= '<th>Meta Description<br><input id="search-replace-meta-description" type="text" class="small-text replace-term" data-column="meta-description" placeholder="New meta-description"><button class="button replace-button" data-column="meta-description">Replace</button></th></th>';
+        $html .= '<th>Title<br><input id="search-replace-title" type="text" class="medium-text replace-term" data-column="title" placeholder="New title"><button class="button replace-button" data-column="title">Replace</button></th>';
+        $html .= '<th>Content<br><input id="search-replace-content" type="text" class="medium-text replace-term" data-column="content" placeholder="New content"><button class="button replace-button" data-column="content">Replace</button></th></th>';
+        $html .= '<th>Meta Title<br><input id="search-replace-meta-title" type="text" class="medium-text replace-term" data-column="meta-title" placeholder="New meta-title"><button class="button replace-button" data-column="meta-title">Replace</button></th></th>';
+        $html .= '<th>Meta Description<br><input id="search-replace-meta-description" type="text" class="medium-text replace-term" data-column="meta-description" placeholder="New meta-description"><button class="button replace-button" data-column="meta-description">Replace</button></th></th>';
         $html .= '</tr>';
         $html .= '</thead>';
         $html .= '<tbody>';
@@ -168,9 +73,8 @@ function sar_search_posts_callback() {
             $meta_title = get_post_meta( $post->ID, '_yoast_wpseo_title', true );
             $meta_description = get_post_meta( $post->ID, '_yoast_wpseo_metadesc', true );
 
-            $html .= '<tr id="post-row-' . esc_attr($post->ID) . '">'; // Добавляем идентификатор к строке
+            $html .= '<tr id="post-row-' . esc_attr($post->ID) . '">';
             $html .= '<td>' . esc_html($post->ID) . '</td>';
-            $html .= '<td>' . esc_html($post->post_status) . '</td>';
             $html .= '<td>' . esc_html($post->post_title) . '</td>';
             $html .= '<td>' . esc_html($content_cleaned) . '</td>';
             $html .= '<td>' . esc_html( $meta_title ) . '</td>';
@@ -185,7 +89,7 @@ function sar_search_posts_callback() {
     }
 
     echo $html;
-    wp_die(); // this is required to terminate immediately and return a proper response
+    wp_die();
 }
 
 function sar_replace_keywords_callback() {
@@ -193,8 +97,6 @@ function sar_replace_keywords_callback() {
     $search_term = sanitize_text_field($_POST['search_term']);
     $replace_term = sanitize_text_field($_POST['replace_term']);
     $column = isset($_POST['column']) ? sanitize_text_field($_POST['column']) : '';
-
-    // Проверка nonce и прав пользователя должна быть здесь
 
     $args = array(
         'post_type' => 'post',
@@ -247,7 +149,6 @@ function sar_replace_keywords_callback() {
                     $count++;
                 }
                 break;
-            // Добавьте другие случаи, если есть другие колонки для замены
         }
     }
 
@@ -261,13 +162,14 @@ function sar_replace_keywords_callback() {
 
 
 function sar_enqueue_scripts($hook) {
-    // Only add to the admin.php page, otherwise it's loaded on every admin page
+    wp_enqueue_style( 'plugin-style', plugin_dir_url(__FILE__) . 'style.css', array(), rand(99,999));
+    wp_enqueue_script( 'main-js', plugin_dir_url(__FILE__) . 'main.js', array(), rand(99,999));
     if ('admin.php' != $hook) {
         return;
     }
     wp_enqueue_script('sar-ajax-script', plugin_dir_url(__FILE__) . 'sar-ajax.js', array('jquery'), null, true);
-    // Localize the script with new data
     wp_localize_script('sar-ajax-script', 'sar_ajax_object', array('ajax_url' => admin_url('admin-ajax.php')));
+    
 }
 
 add_action('admin_enqueue_scripts', 'sar_enqueue_scripts');
